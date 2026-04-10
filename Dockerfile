@@ -1,12 +1,12 @@
 # docker-opencode-etc: Opencode CLI + zsh/tmux/neovim + Miniconda + Rust (stable) + Node LTS (npx).
 #
 # ghcr.io/anomalyco/opencode is Alpine/musl; this image uses Ubuntu + glibc for Conda and native tooling.
-# Opencode CLI: glibc release from GitHub (OPENCODE_VERSION).
+# Opencode CLI: glibc release from GitHub (OPENCODE_VERSION). 1.4+ needed for `providers login -p cursor` with plugins.
 # Offline-oriented: prefetch/rust and prefetch/node ship Cargo.lock + package-lock.json for cache warming and build-time verification.
 FROM ubuntu:24.04
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG OPENCODE_VERSION=1.3.17
+ARG OPENCODE_VERSION=1.4.3
 
 ENV BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 \
     SHELL=/usr/bin/zsh \
@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     ripgrep \
     tmux \
+    xdg-utils \
     zsh \
     neovim \
     && rm -rf /var/lib/apt/lists/*
@@ -77,6 +78,9 @@ RUN set -eux; \
 RUN if id ubuntu &>/dev/null; then userdel -r ubuntu; fi \
     && useradd -m -u 1000 -s /usr/bin/zsh opencode \
     && mkdir -p /workspace \
+        /home/opencode/.config/opencode \
+        /home/opencode/.local/share/opencode \
+        /home/opencode/.local/state/opencode \
     && chown -R opencode:opencode /opt/miniconda3 /workspace /home/opencode
 
 USER opencode
@@ -91,6 +95,10 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --de
     && printf '\n. "$HOME/.cargo/env"\n' >> /home/opencode/.zshrc
 
 USER root
+COPY config/opencode.json /home/opencode/.config/opencode/opencode.json
+COPY scripts/opencode-cursor-login /usr/local/bin/opencode-cursor-login
+RUN chmod 0755 /usr/local/bin/opencode-cursor-login \
+    && chown opencode:opencode /home/opencode/.config/opencode/opencode.json
 COPY prefetch/rust /home/opencode/prefetch/rust
 COPY prefetch/node /home/opencode/prefetch/node
 RUN chown -R opencode:opencode /home/opencode/prefetch

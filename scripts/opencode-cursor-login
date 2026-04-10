@@ -1,0 +1,5 @@
+#!/bin/sh
+# Start Cursor OAuth via OpenCode (requires ~/.config/opencode/opencode.json with the cursor plugin).
+# In Docker: run with -it; if no browser opens, copy the login URL into a browser on your host.
+set -e
+exec opencode providers login -p cursor "$@"
